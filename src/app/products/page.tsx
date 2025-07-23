@@ -1,33 +1,63 @@
+'use client'
+
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 
+interface Product {
+  id: string
+  title: string
+  artist: string
+  description: string | null
+  price: number
+  category: string
+  imageUrl: string | null
+  stock: number
+  featured: boolean
+}
+
 export default function ProductsPage() {
-  // Mock data for now - we'll connect to a database later
-  const products = [
-    {
-      id: 1,
-      title: "The Best of Irish Country",
-      artist: "Various Artists",
-      price: 15.99,
-      image: "https://via.placeholder.com/200x200/047857/ffffff?text=CD",
-      category: "Irish Country"
-    },
-    {
-      id: 2,
-      title: "Traditional Irish Fiddle Music",
-      artist: "Kevin Burke",
-      price: 18.99,
-      image: "https://via.placeholder.com/200x200/047857/ffffff?text=CD",
-      category: "Traditional"
-    },
-    {
-      id: 3,
-      title: "Celtic Folk Tales",
-      artist: "The Dubliners",
-      price: 16.99,
-      image: "https://via.placeholder.com/200x200/047857/ffffff?text=CD",
-      category: "Folk"
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch('/api/products')
+        if (!response.ok) {
+          throw new Error('Failed to fetch products')
+        }
+        const data = await response.json()
+        setProducts(data)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred')
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
+
+    fetchProducts()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4 text-center">
+          <p className="text-lg text-gray-600">Loading George&apos;s music collection...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4 text-center">
+          <p className="text-lg text-red-600">Error: {error}</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -43,33 +73,22 @@ export default function ProductsPage() {
           </p>
         </div>
 
-        {/* Filters - We'll enhance this later */}
-        <div className="flex flex-wrap gap-4 mb-8">
-          <button className="bg-emerald-600 text-white px-4 py-2 rounded-lg">
-            All Music
-          </button>
-          <button className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50">
-            Traditional
-          </button>
-          <button className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50">
-            Country
-          </button>
-          <button className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50">
-            Folk
-          </button>
-        </div>
-
         {/* Products Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {products.map((product) => (
             <div key={product.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow">
               <div className="relative h-48 w-full">
                 <Image 
-                  src={product.image} 
+                  src={product.imageUrl || "https://via.placeholder.com/200x200/047857/ffffff?text=CD"}
                   alt={product.title}
                   fill
                   className="object-cover rounded-t-lg"
                 />
+                {product.featured && (
+                  <div className="absolute top-2 right-2 bg-emerald-600 text-white px-2 py-1 rounded text-xs font-semibold">
+                    Featured
+                  </div>
+                )}
               </div>
               <div className="p-4">
                 <h3 className="font-semibold text-gray-900 mb-1">
@@ -78,20 +97,33 @@ export default function ProductsPage() {
                 <p className="text-gray-600 text-sm mb-2">
                   {product.artist}
                 </p>
+                <p className="text-gray-500 text-xs mb-2">
+                  {product.category}
+                </p>
+                {product.description && (
+                  <p className="text-gray-500 text-xs mb-3 line-clamp-2">
+                    {product.description}
+                  </p>
+                )}
                 <div className="flex items-center justify-between">
                   <span className="text-lg font-bold text-emerald-600">
-                    €{product.price}
+                    €{product.price.toFixed(2)}
                   </span>
-                  <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded text-sm transition-colors">
-                    Add to Cart
-                  </button>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs text-gray-500">
+                      Stock: {product.stock}
+                    </span>
+                    <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded text-sm transition-colors">
+                      Add to Cart
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Empty state if no products (we'll use this later) */}
+        {/* Empty state */}
         {products.length === 0 && (
           <div className="text-center py-12">
             <p className="text-gray-500 text-lg">
