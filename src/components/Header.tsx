@@ -34,6 +34,10 @@ export default function Header() {
             <Link href="/contact" className="text-gray-700 hover:text-emerald-600 transition-colors">
               Contact
             </Link>
+            {/* Admin Link */}
+            <Link href="/admin" className="text-gray-700 hover:text-emerald-600 transition-colors">
+              Admin
+            </Link>
           </nav>
 
           {/* Cart & User Actions */}
