@@ -25,41 +25,50 @@ export default function OrderSuccess() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const processSuccessfulOrder = async () => {
-      if (!sessionId) {
-        setError('No session ID found')
-        setLoading(false)
-        return
-      }
-
-      try {
-        // Verify the Stripe session and create order
-        const response = await fetch('/api/verify-payment', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId })
-        })
-
-        if (response.ok) {
-          const orderData = await response.json()
-          setOrder(orderData)
-          
-          // Clear the cart since payment was successful
-          dispatch({ type: 'CLEAR_CART' })
-        } else {
-          setError('Failed to verify payment')
-        }
-      } catch (err) {
-        console.error('Error processing order:', err)
-        setError('Something went wrong')
-      } finally {
-        setLoading(false)
-      }
+useEffect(() => {
+  const processSuccessfulOrder = async () => {
+    console.log('Processing order with session ID:', sessionId)
+    
+    if (!sessionId) {
+      console.log('No session ID found')
+      setError('No session ID found')
+      setLoading(false)
+      return
     }
 
-    processSuccessfulOrder()
-  }, [sessionId, dispatch])
+    try {
+      console.log('Calling verify-payment API...')
+      
+      const response = await fetch('/api/verify-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId })
+      })
+
+      console.log('API response status:', response.status)
+      
+      if (response.ok) {
+        const orderData = await response.json()
+        console.log('Order data received:', orderData)
+        setOrder(orderData)
+        
+        // Clear the cart since payment was successful
+        dispatch({ type: 'CLEAR_CART' })
+      } else {
+        const errorData = await response.json()
+        console.log('API error response:', errorData)
+        setError(`Failed to verify payment: ${errorData.error || 'Unknown error'}`)
+      }
+    } catch (err) {
+      console.error('Fetch error:', err)
+      setError('Something went wrong')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  processSuccessfulOrder()
+}, [sessionId, dispatch])
 
   if (loading) {
     return (
