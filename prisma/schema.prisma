@@ -42,15 +42,16 @@ model User {
 
 model Order {
   id            String   @id @default(cuid())
-  userId        String
+  userId        String?   // Make this optional for guest orders
   total         Float
   status        String   @default("pending") // pending, completed, shipped
   shippingAddress String
+  customerEmail String   // Add email for guest orders
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   // Relations
-  user          User        @relation(fields: [userId], references: [id])
+  user          User?       @relation(fields: [userId], references: [id]) // Make optional
   orderItems    OrderItem[]
 
   @@map("orders")

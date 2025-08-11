@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCart } from '../../lib/CartContext'
 import Image from 'next/image'
@@ -20,10 +20,12 @@ export default function CheckoutPage() {
     phone: ''
   })
 
-  if (state.items.length === 0) {
-    router.push('/cart')
-    return null
-  }
+  // Move the redirect to useEffect instead of during render
+  useEffect(() => {
+    if (state.items.length === 0) {
+      router.push('/cart')
+    }
+  }, [state.items.length, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,12 +42,14 @@ export default function CheckoutPage() {
         })
       })
 
+      const result = await response.json()
+
       if (response.ok) {
-        const order = await response.json()
         dispatch({ type: 'CLEAR_CART' })
-        router.push(`/order-confirmation/${order.id}`)
+        router.push(`/order-confirmation/${result.id}`)
       } else {
-        alert('Order failed. Please try again.')
+        console.error('Order error:', result)
+        alert(`Order failed: ${result.error || 'Please try again.'}`)
       }
     } catch (error) {
       console.error('Checkout error:', error)
@@ -60,6 +64,17 @@ export default function CheckoutPage() {
       ...prev,
       [e.target.name]: e.target.value
     }))
+  }
+
+  // Show loading while redirecting
+  if (state.items.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4 text-center">
+          <p className="text-lg text-gray-600">Redirecting to cart...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
