@@ -33,6 +33,27 @@ export default function AdminProducts() {
     fetchProducts()
   }, [])
 
+  // DELETE FUNCTION - This is what I added
+  const handleDelete = async (productId: string, productTitle: string) => {
+    if (window.confirm(`Are you sure you want to delete "${productTitle}"? This action cannot be undone.`)) {
+      try {
+        const response = await fetch(`/api/products/${productId}`, {
+          method: 'DELETE',
+        })
+
+        if (response.ok) {
+          // Remove the product from the local state
+          setProducts(products.filter(p => p.id !== productId))
+        } else {
+          alert('Failed to delete product')
+        }
+      } catch (error) {
+        console.error('Error deleting product:', error)
+        alert('Failed to delete product')
+      }
+    }
+  }
+
   if (loading) {
     return <div className="p-8">Loading products...</div>
   }
@@ -123,7 +144,10 @@ export default function AdminProducts() {
                         >
                           Edit
                         </Link>
-                        <button className="text-red-600 hover:text-red-900">
+                        <button 
+                          onClick={() => handleDelete(product.id, product.title)}
+                          className="text-red-600 hover:text-red-900"
+                        >
                           Delete
                         </button>
                       </td>
