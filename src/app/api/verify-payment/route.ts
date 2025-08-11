@@ -2,12 +2,17 @@ import { NextResponse } from 'next/server'
 import { stripe } from '../../../lib/stripe'
 import { prisma } from '../../../lib/db'
 
+interface CartItem {
+  id: string
+  title: string
+  artist: string
+  price: number
+  quantity: number
+}
+
 export async function POST(request: Request) {
   try {
-    console.log('=== PAYMENT VERIFICATION START ===')
-    
     const { sessionId } = await request.json()
-    console.log('Session ID received:', sessionId)
 
     if (!sessionId) {
       return NextResponse.json(
@@ -18,7 +23,6 @@ export async function POST(request: Request) {
 
     // Retrieve the Stripe session
     const session = await stripe.checkout.sessions.retrieve(sessionId)
-    console.log('Stripe session payment status:', session.payment_status)
 
     if (session.payment_status !== 'paid') {
       return NextResponse.json(
@@ -33,40 +37,85 @@ export async function POST(request: Request) {
         shippingAddress: {
           contains: session.id
         }
+      },
+      include: {
+        orderItems: {
+          include: {
+            product: true
+          }
+        }
       }
     })
 
     if (existingOrder) {
-      console.log('Order already exists:', existingOrder.id)
       return NextResponse.json({
         id: existingOrder.id,
         total: existingOrder.total,
         customerEmail: existingOrder.customerEmail,
-        items: []
+        items: existingOrder.orderItems.map(item => ({
+          title: item.product.title,
+          artist: item.product.artist,
+          quantity: item.quantity,
+          price: item.price
+        }))
       })
     }
 
     const customerEmail = session.customer_email || 'unknown@email.com'
     const total = session.amount_total ? session.amount_total / 100 : 0
 
-    // Create order WITH customerEmail field
+    // Get items from session metadata
+    const items: CartItem[] = JSON.parse(session.metadata?.items || '[]')
+    console.log('Items from session:', items)
+
+    // Create order WITH order items
     const order = await prisma.order.create({
       data: {
         userId: null,
         total: total,
-        customerEmail: customerEmail, // ADD THIS LINE
+        customerEmail: customerEmail,
         shippingAddress: `Stripe Customer: ${customerEmail}\nStripe Session: ${session.id}`,
         status: 'completed',
+        orderItems: {
+          create: items.map((item: CartItem) => ({
+            productId: item.id,
+            quantity: item.quantity,
+            price: item.price
+          }))
+        }
+      },
+      include: {
+        orderItems: {
+          include: {
+            product: true
+          }
+        }
       }
     })
 
-    console.log('Order created successfully:', order.id)
+    // Reduce stock for each purchased item
+    for (const item of items) {
+      await prisma.product.update({
+        where: { id: item.id },
+        data: {
+          stock: {
+            decrement: item.quantity
+          }
+        }
+      })
+      console.log(`Reduced stock for ${item.title} by ${item.quantity}`)
+    }
 
     return NextResponse.json({
       id: order.id,
       total: order.total,
       customerEmail: customerEmail,
-      items: []
+      items: order.orderItems.map(item => ({
+        title: item.product.title,
+        artist: item.product.artist,
+        quantity: item.quantity,
+        price: item.price
+      }))
     })
 
   } catch (error) {
