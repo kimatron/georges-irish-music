@@ -26,19 +26,21 @@ export default function AdminDashboard() {
               </div>
             </Link>
 
-            {/* Orders (placeholder for later) */}
-            <div className="bg-white p-6 rounded-lg shadow opacity-50">
-              <div className="text-gray-400 text-3xl mb-4">📦</div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                Orders
-              </h2>
-              <p className="text-gray-600">
-                View and manage customer orders
-              </p>
-              <div className="mt-4 text-gray-400">
-                Coming Soon
+            {/* Orders - NOW ENABLED! */}
+            <Link href="/admin/orders" className="group">
+              <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
+                <div className="text-emerald-600 text-3xl mb-4">📦</div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                  Customer Orders
+                </h2>
+                <p className="text-gray-600">
+                  View and manage customer orders
+                </p>
+                <div className="mt-4 text-emerald-600 group-hover:text-emerald-700">
+                  View Orders →
+                </div>
               </div>
-            </div>
+            </Link>
 
             {/* Settings (placeholder) */}
             <div className="bg-white p-6 rounded-lg shadow opacity-50">
