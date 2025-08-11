@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCart } from '../../lib/CartContext'
+import { stripePromise } from '../../lib/stripe-client'
 import Image from 'next/image'
 
 export default function CheckoutPage() {
-  const { state, dispatch } = useCart()
+  const { state } = useCart()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -20,7 +21,6 @@ export default function CheckoutPage() {
     phone: ''
   })
 
-  // Move the redirect to useEffect instead of during render
   useEffect(() => {
     if (state.items.length === 0) {
       router.push('/cart')
@@ -32,24 +32,33 @@ export default function CheckoutPage() {
     setLoading(true)
 
     try {
-      const response = await fetch('/api/orders', {
+      // Create Stripe checkout session
+      const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items: state.items,
-          customer: formData,
-          total: state.total + 5.00 // including shipping
+          customer: formData
         })
       })
 
-      const result = await response.json()
+      const { sessionId } = await response.json()
 
-      if (response.ok) {
-        dispatch({ type: 'CLEAR_CART' })
-        router.push(`/order-confirmation/${result.id}`)
+      if (sessionId) {
+        const stripe = await stripePromise
+        if (stripe) {
+          // Redirect to Stripe checkout
+          const { error } = await stripe.redirectToCheckout({
+            sessionId
+          })
+          
+          if (error) {
+            console.error('Stripe redirect error:', error)
+            alert('Payment setup failed. Please try again.')
+          }
+        }
       } else {
-        console.error('Order error:', result)
-        alert(`Order failed: ${result.error || 'Please try again.'}`)
+        alert('Failed to create checkout session')
       }
     } catch (error) {
       console.error('Checkout error:', error)
@@ -66,7 +75,6 @@ export default function CheckoutPage() {
     }))
   }
 
-  // Show loading while redirecting
   if (state.items.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
@@ -86,7 +94,10 @@ export default function CheckoutPage() {
           <div className="grid lg:grid-cols-2 gap-8">
             {/* Checkout Form */}
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold mb-6">Shipping Information</h2>
+              <h2 className="text-xl font-semibold mb-6">Customer Information</h2>
+              <p className="text-sm text-gray-600 mb-6">
+                Fill in your details below, then click &quot;Proceed to Payment&quot; to pay securely with Stripe.
+              </p>
               
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -207,17 +218,29 @@ export default function CheckoutPage() {
                   />
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 px-4 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? 'Processing...' : `Place Order - €${(state.total + 5.00).toFixed(2)}`}
-                </button>
+                <div className="pt-6 border-t">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 px-4 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  >
+                    {loading ? (
+                      'Redirecting to payment...'
+                    ) : (
+                      <>
+                        <span>Proceed to Payment - €{(state.total + 5.00).toFixed(2)}</span>
+                        <span className="ml-2">🔒</span>
+                      </>
+                    )}
+                  </button>
+                  <p className="text-xs text-gray-500 text-center mt-2">
+                    Secure payment powered by Stripe
+                  </p>
+                </div>
               </form>
             </div>
 
-            {/* Order Summary */}
+            {/* Order Summary - same as before */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-xl font-semibold mb-6">Order Summary</h2>
               
@@ -260,6 +283,7 @@ export default function CheckoutPage() {
               </div>
 
               <div className="mt-6 pt-6 border-t text-sm text-gray-600">
+                <p className="mb-2">🔒 Secure payment with Stripe</p>
                 <p className="mb-2">📞 Questions? Call George: +353 53 123 4567</p>
                 <p>🎵 Supporting Irish music for 40 years</p>
               </div>
