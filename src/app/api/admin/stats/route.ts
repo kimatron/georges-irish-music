@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '../../../../lib/db'
+import { prisma } from '../../../../lib/db' // Fixed path
 
 export async function GET() {
   try {
@@ -17,10 +17,7 @@ export async function GET() {
       lowStockItems,
       recentOrders
     ] = await Promise.all([
-      // Total products count
       prisma.product.count(),
-      
-      // Orders today count
       prisma.order.count({
         where: {
           createdAt: {
@@ -29,8 +26,6 @@ export async function GET() {
           }
         }
       }),
-      
-      // Total revenue (sum of all completed orders)
       prisma.order.aggregate({
         _sum: {
           total: true
@@ -41,15 +36,11 @@ export async function GET() {
           }
         }
       }),
-      
-      // Featured items count
       prisma.product.count({
         where: {
           featured: true
         }
       }),
-      
-      // Low stock items (less than 5 in stock)
       prisma.product.count({
         where: {
           stock: {
@@ -57,8 +48,6 @@ export async function GET() {
           }
         }
       }),
-      
-      // Recent orders (last 5)
       prisma.order.findMany({
         take: 5,
         orderBy: {
