@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
+import { useCart } from '../../lib/CartContext'
 
 interface Product {
   id: string
@@ -19,6 +20,7 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { dispatch } = useCart()
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -38,6 +40,22 @@ export default function ProductsPage() {
 
     fetchProducts()
   }, [])
+
+  const addToCart = (product: Product) => {
+    dispatch({
+      type: 'ADD_ITEM',
+      payload: {
+        id: product.id,
+        title: product.title,
+        artist: product.artist,
+        price: product.price,
+        imageUrl: product.imageUrl
+      }
+    })
+    
+    // Show a quick confirmation
+    alert(`Added "${product.title}" to cart!`)
+  }
 
   if (loading) {
     return (
@@ -79,7 +97,7 @@ export default function ProductsPage() {
             <div key={product.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow">
               <div className="relative h-48 w-full">
                 <Image 
-                  src={product.imageUrl || "https://via.placeholder.com/200x200/047857/ffffff?text=CD"}
+                  src={product.imageUrl || "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMDQ3ODU3Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+Q0Q8L3RleHQ+PC9zdmc+"}
                   alt={product.title}
                   fill
                   className="object-cover rounded-t-lg"
@@ -113,8 +131,12 @@ export default function ProductsPage() {
                     <span className="text-xs text-gray-500">
                       Stock: {product.stock}
                     </span>
-                    <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded text-sm transition-colors">
-                      Add to Cart
+                    <button 
+                      onClick={() => addToCart(product)}
+                      disabled={product.stock === 0}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded text-sm transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                      {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
                     </button>
                   </div>
                 </div>

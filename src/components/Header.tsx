@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useCart } from '../lib/CartContext'
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const { state } = useCart()
 
   return (
     <header className="bg-white/95 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
@@ -34,7 +36,6 @@ export default function Header() {
             <Link href="/contact" className="text-gray-700 hover:text-emerald-600 transition-colors">
               Contact
             </Link>
-            {/* Admin Link */}
             <Link href="/admin" className="text-gray-700 hover:text-emerald-600 transition-colors">
               Admin
             </Link>
@@ -42,12 +43,14 @@ export default function Header() {
 
           {/* Cart & User Actions */}
           <div className="hidden md:flex items-center space-x-4">
-            <button className="relative p-2 text-gray-700 hover:text-emerald-600 transition-colors">
+            <Link href="/cart" className="relative p-2 text-gray-700 hover:text-emerald-600 transition-colors">
               🛒
-              <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                3
-              </span>
-            </button>
+              {state.itemCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {state.itemCount}
+                </span>
+              )}
+            </Link>
             <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition-colors">
               Account
             </button>
@@ -81,11 +84,14 @@ export default function Header() {
               <Link href="/contact" className="text-gray-700 hover:text-emerald-600 transition-colors">
                 Contact
               </Link>
+              <Link href="/admin" className="text-gray-700 hover:text-emerald-600 transition-colors">
+                Admin
+              </Link>
               <div className="flex items-center space-x-4 pt-4 border-t">
-                <button className="flex items-center space-x-2 text-gray-700">
+                <Link href="/cart" className="flex items-center space-x-2 text-gray-700">
                   <span>🛒</span>
-                  <span>Cart (3)</span>
-                </button>
+                  <span>Cart ({state.itemCount})</span>
+                </Link>
                 <button className="bg-emerald-600 text-white px-4 py-2 rounded-lg">
                   Account
                 </button>
